@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parakeet Test Dashboard</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --accent: #38bdf8;
+            --text: #f1f5f9;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .card {
+            background-color: var(--card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+        }
+        .question-list {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .question-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .question-btn:hover {
+            background: rgba(56, 189, 248, 0.1);
+            border-color: var(--accent);
+            transform: translateX(5px);
+        }
+        .speak-icon {
+            font-size: 1.2rem;
+            opacity: 0.5;
+        }
+        .instruction {
+            margin-bottom: 2rem;
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+        .tag {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background: rgba(56, 189, 248, 0.2);
+            color: var(--accent);
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Parakeet Test Dashboard</h1>
+        <p class="instruction">
+            Use this dashboard to simulate an interviewer. Ensure your <strong>Parakeet Desktop App</strong> is running and your microphone is enabled (or use virtual audio routing). 
+            Clicking a question will use your browser's <strong>Text-to-Speech</strong> to speak the question aloud.
+        </p>
+        
+        <div class="card">
+            <span class="tag">Simulate Interviewer</span>
+            <div class="question-list">
+                <button class="question-btn" onclick="speak('Tell me about yourself.')">
+                    <span>"Tell me about yourself."</span>
+                    <span class="speak-icon">🔊</span>
+                </button>
+                <button class="question-btn" onclick="speak('Why should we hire you for this role?')">
+                    <span>"Why should we hire you for this role?"</span>
+                    <span class="speak-icon">🔊</span>
+                </button>
+                <button class="question-btn" onclick="speak('What are your greatest professional strengths?')">
+                    <span>"What are your greatest professional strengths?"</span>
+                    <span class="speak-icon">🔊</span>
+                </button>
+                <button class="question-btn" onclick="speak('How do you handle conflict or difficult situations at work?')">
+                    <span>"How do you handle conflict or difficult situations at work?"</span>
+                    <span class="speak-icon">🔊</span>
+                </button>
+                <button class="question-btn" onclick="speak('Explain the difference between a list and a tuple in Python.')">
+                    <span>"Explain the difference between a list and a tuple in Python."</span>
+                    <span class="speak-icon">🔊</span>
+                </button>
+                <button class="question-btn" onclick="speak('How would you optimize a database query that is running slowly?')">
+                    <span>"How would you optimize a database query that is running slowly?"</span>
+                    <span class="speak-icon">🔊</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function speak(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+    </script>
+</body>
+</html>

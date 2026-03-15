@@ -1,0 +1,6 @@
+sounddevice
+numpy
+openai
+groq
+keyboard
+pywebview

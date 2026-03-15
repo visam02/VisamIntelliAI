@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VisaMintelli AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<style>
+:root {
+  --bg: rgba(15, 23, 42, 0.92);
+  --card: rgba(30, 41, 59, 0.85);
+  --glass: rgba(51, 65, 85, 0.4);
+  --accent: #38bdf8;
+  --accent-glow: rgba(56, 189, 248, 0.3);
+  --green: #22c55e;
+  --red: #ef4444;
+  --amber: #f59e0b;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --text-dark: #64748b;
+  --ai-green: #4ade80;
+  --border: rgba(148, 163, 184, 0.12);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ── Header ─────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, rgba(30,41,59,0.95), rgba(15,23,42,0.95));
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+  -webkit-app-region: drag;
+}
+.header:active { cursor: grabbing; }
+
+.status-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--amber);
+  margin-right: 8px;
+  transition: background 0.3s;
+  box-shadow: 0 0 8px var(--amber);
+}
+.status-dot.ready { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.status-dot.error { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+.status-text { font-size: 12px; color: var(--text-dim); font-weight: 500; }
+
+.meter-wrap {
+  margin-left: 12px;
+  width: 50px; height: 4px;
+  background: rgba(51,65,85,0.6);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.meter-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--green), var(--accent));
+  border-radius: 2px;
+  transition: width 0.1s;
+}
+
+.streaming-dot {
+  margin-left: 8px;
+  font-size: 14px;
+  color: var(--accent);
+  animation: pulse 1s infinite;
+  opacity: 0;
+}
+.streaming-dot.active { opacity: 1; }
+@keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
+
+.header-spacer { flex: 1; }
+
+.header-btns {
+  display: flex; gap: 4px;
+  -webkit-app-region: no-drag;
+}
+.header-btn {
+  width: 28px; height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.header-btn:hover { background: var(--glass); color: var(--text); }
+.header-btn.close:hover { background: rgba(239,68,68,0.2); color: var(--red); }
+
+/* ── Mode Toggle ────────────────────────── */
+.mode-bar {
+  display: flex;
+  padding: 6px 12px;
+  gap: 4px;
+  background: rgba(15,23,42,0.5);
+}
+.mode-btn {
+  flex: 1;
+  padding: 6px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.mode-btn.active {
+  background: linear-gradient(135deg, var(--accent), #0ea5e9);
+  color: white;
+  border-color: var(--accent);
+  box-shadow: 0 2px 12px var(--accent-glow);
+}
+.mode-btn:hover:not(.active) { background: var(--glass); color: var(--text); }
+
+/* ── Content ────────────────────────────── */
+.content {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 82px);
+  padding: 10px 12px;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+}
+
+/* ── Transcript Area ────────────────────── */
+.transcript-box {
+  flex: 0 0 auto;
+  max-height: 35%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  overflow-y: auto;
+  backdrop-filter: blur(12px);
+}
+.transcript-box::-webkit-scrollbar { width: 4px; }
+.transcript-box::-webkit-scrollbar-thumb { background: var(--text-dark); border-radius: 2px; }
+
+.transcript-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.transcript-text .new-line {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* ── AI Suggestion Area ─────────────────── */
+.suggestion-box {
+  flex: 1;
+  background: linear-gradient(135deg, rgba(13,17,23,0.9), rgba(22,27,34,0.85));
+  border: 1px solid rgba(74,222,128,0.15);
+  border-radius: 12px;
+  padding: 12px;
+  overflow-y: auto;
+  backdrop-filter: blur(12px);
+}
+.suggestion-box::-webkit-scrollbar { width: 4px; }
+.suggestion-box::-webkit-scrollbar-thumb { background: var(--text-dark); border-radius: 2px; }
+
+.suggestion-text {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ai-green);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.suggestion-text code {
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(56,189,248,0.1);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.suggestion-text pre {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+.suggestion-text pre code {
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-dark);
+  font-size: 12px;
+  gap: 6px;
+}
+.empty-state .icon { font-size: 28px; opacity: 0.5; }
+
+/* ── Action Bar ─────────────────────────── */
+.action-bar {
+  flex: 0 0 auto;
+}
+.help-btn {
+  width: 100%;
+  padding: 12px 0;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--green), #16a34a);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 16px rgba(34,197,94,0.3);
+}
+.help-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(34,197,94,0.4);
+}
+.help-btn:active { transform: translateY(0); }
+
+/* ── Settings Panel ─────────────────────── */
+.settings-overlay {
+  position: fixed;
+  top: 40px; left: 0; right: 0; bottom: 0;
+  background: rgba(15,23,42,0.98);
+  backdrop-filter: blur(20px);
+  padding: 16px;
+  overflow-y: auto;
+  display: none;
+  z-index: 100;
+}
+.settings-overlay.visible { display: block; }
+
+.settings-group {
+  margin-bottom: 14px;
+}
+.settings-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.settings-input, .settings-select {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  outline: none;
+  transition: border 0.2s;
+}
+.settings-input:focus, .settings-select:focus {
+  border-color: var(--accent);
+}
+.settings-textarea {
+  width: 100%;
+  height: 80px;
+  padding: 8px 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  resize: vertical;
+  outline: none;
+}
+.settings-textarea:focus { border-color: var(--accent); }
+
+.save-btn {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), #0ea5e9);
+  color: white;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.save-btn:hover { opacity: 0.9; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header" id="header">
+  <div class="status-dot" id="statusDot"></div>
+  <span class="status-text" id="statusText">Initializing...</span>
+  <div class="meter-wrap"><div class="meter-bar" id="meterBar"></div></div>
+  <div class="streaming-dot" id="streamDot">●</div>
+  <div class="header-spacer"></div>
+  <div class="header-btns">
+    <button class="header-btn" onclick="toggleSettings()" title="Settings">⚙</button>
+    <button class="header-btn" id="collapseBtn" onclick="pywebview.api.toggle_collapse()" title="Minimize">−</button>
+    <button class="header-btn close" onclick="pywebview.api.close_app()" title="Close">✕</button>
+  </div>
+</div>
+
+<!-- Mode Toggle Bar -->
+<div class="mode-bar">
+  <button class="mode-btn active" id="modeInterview" onclick="setMode('interview')">🎤 Interview</button>
+  <button class="mode-btn" id="modeCoding" onclick="setMode('coding')">💻 Coding</button>
+</div>
+
+<!-- Main Content -->
+<div class="content" id="mainContent">
+  <div>
+    <div class="section-label">TRANSCRIPT</div>
+    <div class="transcript-box" id="transcriptBox">
+      <div class="transcript-text" id="transcriptText"></div>
+    </div>
+  </div>
+
+  <div style="flex:1; display:flex; flex-direction:column; min-height:0">
+    <div class="section-label">AI SUGGESTION</div>
+    <div class="suggestion-box" id="suggestionBox">
+      <div class="empty-state" id="emptyState">
+        <div class="icon">🤖</div>
+        <div>Listening... Ask a question to get AI help</div>
+        <div style="font-size:10px; margin-top:4px">Or press Ctrl+Enter for manual trigger</div>
+      </div>
+      <div class="suggestion-text" id="suggestionText" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <button class="help-btn" onclick="pywebview.api.trigger_help()">
+      GET AI HELP  (Ctrl+Enter)
+    </button>
+  </div>
+</div>
+
+<!-- Settings Panel -->
+<div class="settings-overlay" id="settingsPanel">
+  <div class="settings-group">
+    <div class="settings-label">Audio Input Device</div>
+    <select class="settings-select" id="deviceSelect">
+      <option>Loading devices...</option>
+    </select>
+  </div>
+  <div class="settings-group">
+    <div class="settings-label">Resume / Background</div>
+    <textarea class="settings-textarea" id="resumeInput" placeholder="Paste your resume or key skills..."></textarea>
+  </div>
+  <div class="settings-group">
+    <div class="settings-label">Job Description</div>
+    <textarea class="settings-textarea" id="jdInput" placeholder="Paste the job description..."></textarea>
+  </div>
+  <div class="settings-group">
+    <div class="settings-label">Preferred Coding Language</div>
+    <select class="settings-select" id="codeLangSelect">
+      <option value="python">Python</option>
+      <option value="javascript">JavaScript</option>
+      <option value="java">Java</option>
+      <option value="cpp">C++</option>
+      <option value="csharp">C#</option>
+      <option value="go">Go</option>
+      <option value="typescript">TypeScript</option>
+      <option value="rust">Rust</option>
+    </select>
+  </div>
+  <button class="save-btn" onclick="saveSettings()">SAVE & CLOSE</button>
+</div>
+
+<script>
+// ── State ──────────────────────────────────
+let currentMode = 'interview';
+let settingsVisible = false;
+
+// ── Mode Toggle ────────────────────────────
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('modeInterview').classList.toggle('active', mode === 'interview');
+  document.getElementById('modeCoding').classList.toggle('active', mode === 'coding');
+  pywebview.api.set_mode(mode);
+}
+
+// ── Settings ───────────────────────────────
+function toggleSettings() {
+  settingsVisible = !settingsVisible;
+  document.getElementById('settingsPanel').classList.toggle('visible', settingsVisible);
+}
+
+function saveSettings() {
+  const resume = document.getElementById('resumeInput').value;
+  const jd = document.getElementById('jdInput').value;
+  const deviceIdx = document.getElementById('deviceSelect').value;
+  const codeLang = document.getElementById('codeLangSelect').value;
+  pywebview.api.save_settings(resume, jd, deviceIdx, codeLang);
+  toggleSettings();
+}
+
+// ── Called by Python via evaluate_js ────────
+function updateStatus(text, state) {
+  document.getElementById('statusText').textContent = text;
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot' + (state === 'ready' ? ' ready' : state === 'error' ? ' error' : '');
+}
+
+function updateMeter(level) {
+  document.getElementById('meterBar').style.width = (level * 100) + '%';
+}
+
+function updateTranscript(text) {
+  const el = document.getElementById('transcriptText');
+  el.textContent = text;
+  const box = document.getElementById('transcriptBox');
+  box.scrollTop = box.scrollHeight;
+}
+
+function appendTranscript(line) {
+  const el = document.getElementById('transcriptText');
+  if (el.textContent) el.textContent += '\n';
+  el.textContent += line;
+  const box = document.getElementById('transcriptBox');
+  box.scrollTop = box.scrollHeight;
+}
+
+function setSuggestion(html) {
+  const el = document.getElementById('suggestionText');
+  const empty = document.getElementById('emptyState');
+  if (html) {
+    el.innerHTML = html;
+    el.style.display = 'block';
+    empty.style.display = 'none';
+    // Highlight any code blocks
+    el.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+    const box = document.getElementById('suggestionBox');
+    box.scrollTop = box.scrollHeight;
+  } else {
+    el.style.display = 'none';
+    empty.style.display = 'flex';
+  }
+}
+
+function appendSuggestion(chunk) {
+  const el = document.getElementById('suggestionText');
+  const empty = document.getElementById('emptyState');
+  el.style.display = 'block';
+  empty.style.display = 'none';
+  el.textContent += chunk;
+  const box = document.getElementById('suggestionBox');
+  box.scrollTop = box.scrollHeight;
+}
+
+function clearSuggestion() {
+  document.getElementById('suggestionText').innerHTML = '';
+  document.getElementById('suggestionText').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'flex';
+}
+
+function setStreaming(active) {
+  document.getElementById('streamDot').classList.toggle('active', active);
+}
+
+function setDeviceList(devices) {
+  const sel = document.getElementById('deviceSelect');
+  sel.innerHTML = '';
+  devices.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.index;
+    opt.textContent = d.name;
+    sel.appendChild(opt);
+  });
+}
+
+function formatSuggestion(text) {
+  // Convert markdown-like code blocks to HTML
+  let html = text
+    .replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => {
+      lang = lang || 'plaintext';
+      return `<pre><code class="language-${lang}">${escapeHtml(code.trim())}</code></pre>`;
+    })
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+  return html;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>

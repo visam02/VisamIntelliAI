@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ParakeetAI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+:root {
+  --bg: #0f172a;
+  --card: rgba(30, 41, 59, 0.9);
+  --glass: rgba(51, 65, 85, 0.5);
+  --accent: #38bdf8;
+  --accent-glow: rgba(56, 189, 248, 0.25);
+  --green: #22c55e;
+  --red: #ef4444;
+  --amber: #f59e0b;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --text-dark: #64748b;
+  --ai-green: #4ade80;
+  --border: rgba(148, 163, 184, 0.12);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100%;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Layout ─────────────────────────────── */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* ── Header ─────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(30,41,59,0.98), rgba(15,23,42,0.98));
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.logo {
+  font-size: 16px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--ai-green));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.status-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--amber);
+  margin-left: 10px;
+  transition: background 0.3s;
+  box-shadow: 0 0 6px var(--amber);
+}
+.status-dot.ready { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.status-dot.error { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+.status-text {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-left: 8px;
+  font-weight: 500;
+}
+.streaming-dot {
+  margin-left: 8px;
+  color: var(--accent);
+  animation: pulse 1s infinite;
+  opacity: 0;
+}
+.streaming-dot.active { opacity: 1; }
+@keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
+
+.header-spacer { flex: 1; }
+
+.settings-btn {
+  width: 36px; height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: var(--glass);
+  color: var(--text-dim);
+  font-size: 18px;
+  cursor: pointer;
+}
+.settings-btn:active { background: var(--accent); color: white; }
+
+/* ── Mode Toggle ────────────────────────── */
+.mode-bar {
+  display: flex;
+  padding: 8px 12px;
+  gap: 6px;
+  background: rgba(15,23,42,0.6);
+  flex-shrink: 0;
+}
+.mode-btn {
+  flex: 1;
+  padding: 10px 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.mode-btn.active {
+  background: linear-gradient(135deg, var(--accent), #0ea5e9);
+  color: white;
+  border-color: var(--accent);
+  box-shadow: 0 2px 12px var(--accent-glow);
+}
+
+/* ── Content ────────────────────────────── */
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  gap: 10px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Transcript ─────────────────────────── */
+.transcript-box {
+  flex: 0 0 auto;
+  max-height: 30%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  overflow-y: auto;
+}
+.transcript-box::-webkit-scrollbar { display: none; }
+.transcript-text {
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── Suggestion ─────────────────────────── */
+.suggestion-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.suggestion-box {
+  flex: 1;
+  background: linear-gradient(135deg, rgba(13,17,23,0.95), rgba(22,27,34,0.9));
+  border: 1px solid rgba(74,222,128,0.15);
+  border-radius: 12px;
+  padding: 12px;
+  overflow-y: auto;
+}
+.suggestion-box::-webkit-scrollbar { display: none; }
+.suggestion-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ai-green);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.suggestion-text pre {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+.suggestion-text pre code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text);
+}
+.suggestion-text code {
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(56,189,248,0.1);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-dark);
+  font-size: 13px;
+  gap: 8px;
+}
+.empty-state .icon { font-size: 36px; opacity: 0.5; }
+
+/* ── Bottom Bar ─────────────────────────── */
+.bottom-bar {
+  padding: 10px 12px 16px;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  background: rgba(15,23,42,0.8);
+}
+
+.mic-btn {
+  width: 60px; height: 52px;
+  border: none;
+  border-radius: 14px;
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.mic-btn.off {
+  background: var(--glass);
+  color: var(--text-dim);
+}
+.mic-btn.on {
+  background: linear-gradient(135deg, var(--red), #dc2626);
+  color: white;
+  box-shadow: 0 4px 16px rgba(239,68,68,0.4);
+  animation: mic-pulse 2s infinite;
+}
+@keyframes mic-pulse {
+  0%,100% { box-shadow: 0 4px 16px rgba(239,68,68,0.3); }
+  50% { box-shadow: 0 4px 24px rgba(239,68,68,0.6); }
+}
+
+.help-btn {
+  flex: 1;
+  height: 52px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--green), #16a34a);
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 16px rgba(34,197,94,0.3);
+}
+.help-btn:active {
+  transform: scale(0.98);
+}
+
+/* ── Settings Panel ─────────────────────── */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,0.98);
+  padding: 60px 16px 16px;
+  overflow-y: auto;
+  display: none;
+  z-index: 100;
+}
+.settings-overlay.visible { display: block; }
+.settings-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  width: 36px; height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: var(--glass);
+  color: var(--text);
+  font-size: 18px;
+  cursor: pointer;
+}
+.settings-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, var(--accent), var(--ai-green));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.settings-group { margin-bottom: 14px; }
+.settings-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.settings-textarea, .settings-select {
+  width: 100%;
+  padding: 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  outline: none;
+}
+.settings-textarea { height: 80px; resize: vertical; }
+.settings-textarea:focus, .settings-select:focus { border-color: var(--accent); }
+
+.save-btn {
+  width: 100%;
+  padding: 14px;
+  margin-top: 16px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), #0ea5e9);
+  color: white;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+/* ── Warnings ───────────────────────────── */
+.warning-banner {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid var(--red);
+  color: #fecaca;
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  display: none;
+}
+.warning-banner code {
+  background: rgba(0,0,0,0.3);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: monospace;
+  color: var(--accent);
+}
+
+/* ── Stealth Mode Title Bar ────────────── */
+.stealth-titlebar {
+  display: none;
+  align-items: center;
+  padding: 6px 10px;
+  background: linear-gradient(135deg, rgba(30,41,59,0.98), rgba(15,23,42,0.98));
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+  -webkit-app-region: drag;
+  user-select: none;
+  flex-shrink: 0;
+}
+.stealth-titlebar:active { cursor: grabbing; }
+.stealth-mode .stealth-titlebar { display: flex; }
+.stealth-titlebar .stealth-logo {
+  font-size: 13px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--ai-green));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.stealth-titlebar .stealth-badge {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--green);
+  background: rgba(34,197,94,0.15);
+  border: 1px solid rgba(34,197,94,0.3);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-left: 8px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.stealth-titlebar .stealth-spacer { flex: 1; }
+.stealth-titlebar .stealth-btns {
+  display: flex;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+}
+.stealth-titlebar .stealth-btn {
+  width: 24px; height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.stealth-titlebar .stealth-btn:hover {
+  background: var(--glass);
+  color: var(--text);
+}
+.stealth-titlebar .stealth-btn.close:hover {
+  background: rgba(239,68,68,0.2);
+  color: var(--red);
+}
+
+/* ── Floating Toolbar Mode ─────────────── */
+.toolbar-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 48px;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  z-index: 9999;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+.toolbar-mode .toolbar-overlay { display: flex; }
+.toolbar-mode .app { margin-top: 48px; height: calc(100vh - 48px); }
+.toolbar-mode .header, .toolbar-mode .stealth-titlebar { display: none !important; }
+
+.toolbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 14px;
+}
+.toolbar-status {
+  width: 8px; height: 8px;
+  background: var(--red);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--red);
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 6px;
+  -webkit-app-region: no-drag;
+}
+.toolbar-btn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+.toolbar-btn:hover { background: var(--glass); border-color: var(--accent); }
+.toolbar-btn.primary {
+  background: linear-gradient(135deg, var(--accent), var(--ai-green));
+  border: none;
+  color: #000;
+}
+.toolbar-btn.primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+.toolbar-timer {
+  background: #000;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  margin-left: auto;
+}
+
+.toolbar-controls {
+  display: flex;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+}
+.toolbar-icon-btn {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-dim);
+  transition: all 0.2s;
+}
+.toolbar-icon-btn:hover { background: var(--glass); color: var(--text); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Stealth Mode Title Bar (only visible in pywebview) -->
+  <div class="stealth-titlebar" id="stealthTitlebar">
+    <span class="stealth-logo">🦜 ParakeetAI</span>
+    <span class="stealth-badge">🛡️ Stealth</span>
+    <div class="stealth-spacer"></div>
+    <div class="stealth-btns">
+      <button class="stealth-btn" onclick="stealthCollapse()" title="Minimize">−</button>
+      <button class="stealth-btn close" onclick="stealthClose()" title="Close">✕</button>
+    </div>
+  </div>
+
+  <!-- Floating Toolbar (Horizontal Mode) -->
+  <div class="toolbar-overlay">
+    <div class="toolbar-logo">
+      <span>🦜 ParakeetAI</span>
+      <div class="toolbar-status"></div>
+    </div>
+    
+    <div class="toolbar-actions">
+      <button class="toolbar-btn primary" onclick="triggerHelp()">
+        <span>✨ AI Help</span>
+      </button>
+      <button class="toolbar-btn" onclick="toggleSettings()">
+        <span>💬 Chat</span>
+      </button>
+    </div>
+
+    <div class="toolbar-timer" id="toolbarTimer">00:00</div>
+
+    <div class="toolbar-controls">
+      <div class="toolbar-icon-btn" onclick="stealthCollapse()" title="Toggle Size">◱</div>
+      <div class="toolbar-icon-btn" onclick="stealthClose()" title="Close">✕</div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <span class="logo">🦜 ParakeetAI</span>
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-text" id="statusText">Connecting...</span>
+    <span class="streaming-dot" id="streamDot">●</span>
+    <div class="header-spacer"></div>
+    <button class="settings-btn" onclick="toggleSettings()">⚙</button>
+  </div>
+
+  <!-- Mode Toggle -->
+  <div class="mode-bar">
+    <button class="mode-btn active" id="modeInterview" onclick="setMode('interview')">🎤 Interview</button>
+    <button class="mode-btn" id="modeCoding" onclick="setMode('coding')">💻 Coding</button>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <div id="micWarning" class="warning-banner">
+      <strong>⚠️ Microphone Blocked (Insecure Origin)</strong><br>
+      Browsers block mics on HTTP. To fix on Chrome:<br>
+      1. Go to: <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code><br>
+      2. Add: <code id="curOrigin"></code><br>
+      3. Set to <strong>Enabled</strong> and Relaunch.
+    </div>
+
+    <div>
+      <div class="section-label">TRANSCRIPT</div>
+      <div class="transcript-box" id="transcriptBox">
+        <div class="transcript-text" id="transcriptText"></div>
+      </div>
+    </div>
+
+    <div class="suggestion-wrap">
+      <div class="section-label">AI SUGGESTION</div>
+      <div class="suggestion-box" id="suggestionBox">
+        <div class="empty-state" id="emptyState">
+          <div class="icon">🤖</div>
+          <div>Tap the mic to start listening</div>
+          <div style="font-size:11px;color:var(--text-dark)">AI will answer interview questions in real-time</div>
+        </div>
+        <div class="suggestion-text" id="suggestionText" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Action Bar -->
+  <div class="bottom-bar">
+    <button class="mic-btn off" id="micBtn" onclick="toggleMic()">🎤</button>
+    <button class="help-btn" onclick="triggerHelp()">GET AI HELP</button>
+  </div>
+</div>
+
+<!-- Settings -->
+<div class="settings-overlay" id="settingsPanel">
+  <button class="settings-close" onclick="toggleSettings()">✕</button>
+  <div class="settings-title">Settings</div>
+  <div class="settings-group">
+    <div class="settings-label">Resume / Background</div>
+    <textarea class="settings-textarea" id="resumeInput" placeholder="Paste your resume or key skills..."></textarea>
+  </div>
+  <div class="settings-group">
+    <div class="settings-label">Job Description</div>
+    <textarea class="settings-textarea" id="jdInput" placeholder="Paste the job description..."></textarea>
+  </div>
+  <div class="settings-group">
+    <div class="settings-label">Coding Language</div>
+    <select class="settings-select" id="codeLangSelect">
+      <option value="python">Python</option>
+      <option value="javascript">JavaScript</option>
+      <option value="java">Java</option>
+      <option value="cpp">C++</option>
+      <option value="go">Go</option>
+      <option value="typescript">TypeScript</option>
+    </select>
+  </div>
+  <button class="save-btn" onclick="saveSettings()">SAVE</button>
+</div>
+
+<script>
+// ── Initial Checks ─────────────────────────
+window.addEventListener('load', () => {
+    const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    const isInsecure = location.protocol === 'http:';
+    if (isInsecure && !isLocal) {
+        document.getElementById('micWarning').style.display = 'block';
+        document.getElementById('curOrigin').textContent = location.origin;
+    }
+});
+
+// ── Socket.IO ──────────────────────────────
+const socket = io();
+
+socket.on("connect", () => {
+  document.getElementById("statusDot").className = "status-dot ready";
+  document.getElementById("statusText").textContent = "Connected";
+});
+
+socket.on("disconnect", () => {
+  document.getElementById("statusDot").className = "status-dot error";
+  document.getElementById("statusText").textContent = "Disconnected";
+});
+
+socket.on("status", data => {
+  document.getElementById("statusText").textContent = data.text;
+  const dot = document.getElementById("statusDot");
+  dot.className = "status-dot" + (data.state === "ready" ? " ready" : data.state === "error" ? " error" : "");
+});
+
+socket.on("transcript", data => {
+  const el = document.getElementById("transcriptText");
+  if (el.textContent) el.textContent += "\n";
+  el.textContent += data.text;
+  const box = document.getElementById("transcriptBox");
+  box.scrollTop = box.scrollHeight;
+});
+
+socket.on("suggestion_chunk", data => {
+  const el = document.getElementById("suggestionText");
+  const empty = document.getElementById("emptyState");
+  el.style.display = "block";
+  empty.style.display = "none";
+  el.textContent += data.chunk;
+  const box = document.getElementById("suggestionBox");
+  box.scrollTop = box.scrollHeight;
+});
+
+socket.on("clear_suggestion", () => {
+  document.getElementById("suggestionText").textContent = "";
+});
+
+socket.on("streaming", data => {
+  document.getElementById("streamDot").classList.toggle("active", data.active);
+});
+
+// ── Mic Capture (Web Audio API) ────────────
+let micStream = null;
+let mediaRecorder = null;
+let isRecording = false;
+let recordInterval = null;
+
+async function toggleMic() {
+  if (isRecording) {
+    stopMic();
+  } else {
+    await startMic();
+  }
+}
+
+async function startMic() {
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true }
+    });
+
+    isRecording = true;
+    document.getElementById("micBtn").className = "mic-btn on";
+    document.getElementById("statusText").textContent = "Listening...";
+    document.getElementById("statusDot").className = "status-dot ready";
+
+    // Record in 3-second chunks and send to server
+    startChunkedRecording();
+
+  } catch (e) {
+    alert("Microphone access denied. Please allow mic access.");
+    console.error(e);
+  }
+}
+
+function startChunkedRecording() {
+  if (!micStream) return;
+
+  function recordChunk() {
+    if (!isRecording || !micStream) return;
+
+    mediaRecorder = new MediaRecorder(micStream, {
+      mimeType: MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus" : "audio/webm"
+    });
+
+    const chunks = [];
+
+    mediaRecorder.ondataavailable = e => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = () => {
+      if (chunks.length > 0) {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        blob.arrayBuffer().then(buf => {
+          socket.emit("audio_chunk", { audio: buf });
+        });
+      }
+      // Start next chunk
+      if (isRecording) setTimeout(recordChunk, 100);
+    };
+
+    mediaRecorder.start();
+    // Stop after 3 seconds to create a chunk
+    setTimeout(() => {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+      }
+    }, 3000);
+  }
+
+  recordChunk();
+}
+
+function stopMic() {
+  isRecording = false;
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+  }
+  if (micStream) {
+    micStream.getTracks().forEach(t => t.stop());
+    micStream = null;
+  }
+  document.getElementById("micBtn").className = "mic-btn off";
+  document.getElementById("statusText").textContent = "Mic off";
+}
+
+// ── Mode Toggle ────────────────────────────
+function setMode(mode) {
+  document.getElementById("modeInterview").classList.toggle("active", mode === "interview");
+  document.getElementById("modeCoding").classList.toggle("active", mode === "coding");
+  socket.emit("set_mode", { mode });
+}
+
+// ── Settings ───────────────────────────────
+function toggleSettings() {
+  document.getElementById("settingsPanel").classList.toggle("visible");
+}
+
+function saveSettings() {
+  socket.emit("save_settings", {
+    resume: document.getElementById("resumeInput").value,
+    jd: document.getElementById("jdInput").value,
+    code_lang: document.getElementById("codeLangSelect").value,
+  });
+  toggleSettings();
+}
+
+// ── Trigger Help ───────────────────────────
+function triggerHelp() {
+  document.getElementById("suggestionText").textContent = "";
+  socket.emit("trigger_help");
+}
+
+// ── Stealth Mode Controls ──────────────
+function stealthClose() {
+  if (window.pywebview) {
+    pywebview.api.close_app();
+  } else {
+    window.close();
+  }
+}
+
+function stealthCollapse() {
+  if (window.pywebview) {
+    pywebview.api.toggle_collapse();
+  }
+}
+
+// ── Toolbar Timer ──────────────────────
+let startTime = null;
+let timerInterval = null;
+
+function updateTimer() {
+  if (!startTime) return;
+  const now = new Date();
+  const diff = Math.floor((now - startTime) / 1000);
+  const m = Math.floor(diff / 60).toString().padStart(2, '0');
+  const s = (diff % 60).toString().padStart(2, '0');
+  document.getElementById("toolbarTimer").textContent = `${m}:${s}`;
+}
+
+function startTimer() {
+  if (timerInterval) return;
+  startTime = new Date();
+  timerInterval = setInterval(updateTimer, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+}
+
+// Start timer on mic activity
+socket.on("mic_activity", (active) => {
+    if (active) startTimer();
+    else stopTimer();
+});
+</script>
+</body>
+</html>
