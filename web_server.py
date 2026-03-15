@@ -373,7 +373,7 @@ def run_stealth(port):
     time.sleep(0.5)
 
     api = StealthApi()
-    window_title = "ParakeetAI"
+    window_title = "VisamIntelliAI"
 
     window = webview.create_window(
         window_title,
