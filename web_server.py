@@ -105,11 +105,23 @@ def get_llm_stream(transcript, mode="interview", code_lang="python",
 
         # Add current date context
         now_str = time.strftime("%A, %B %d, %Y - %I:%M %p")
-        
+
+        modern_knowledge = (
+            "\n\nIMPORTANT - Modern AI & Tech Terminology (ALWAYS use these definitions):\n"
+            "• MCP = Model Context Protocol (open standard by Anthropic for AI-tool communication, NOT Microsoft Certified Professional)\n"
+            "• RAG = Retrieval-Augmented Generation (combining LLM with external knowledge retrieval)\n"
+            "• LLM = Large Language Model (e.g. GPT-4, Claude, Llama)\n"
+            "• Agentic AI = AI systems that can autonomously plan and execute multi-step tasks\n"
+            "• Vector DB = Database optimized for semantic similarity search (e.g. Pinecone, Weaviate)\n"
+            "• Fine-tuning = Training a pre-trained model on domain-specific data\n"
+            "• If any term has both an old and a new AI industry definition, ALWAYS use the new AI industry definition.\n"
+        )
+
         if mode == "coding":
             system = (
                 "You are an expert coding interview assistant. The candidate is in a LIVE "
-                f"coding interview.\n\nCurrent Time: {now_str}\n\nRules:\n"
+                f"coding interview.\n\nCurrent Time: {now_str}"
+                f"{modern_knowledge}\n\nRules:\n"
                 "• Analyze the problem and provide a clean, optimal solution.\n"
                 f"• Use {code_lang}.\n"
                 "• Format code in markdown code blocks.\n"
@@ -119,11 +131,12 @@ def get_llm_stream(transcript, mode="interview", code_lang="python",
         else:
             system = (
                 "You are an expert AI interview coach. The candidate is in a LIVE "
-                f"interview right now.\n\nCurrent Time: {now_str}\n\nRules:\n"
+                f"interview right now.\n\nCurrent Time: {now_str}"
+                f"{modern_knowledge}\n\nRules:\n"
                 "• Provide a clear, concise, interview-ready answer.\n"
                 "• Format as short bullet points (3-5 bullets max).\n"
                 "• Be direct, confident, and professional.\n"
-                "• Keep under 120 words. Start immediately with the answer."
+                "• Keep under 150 words. Start immediately with the answer."
             )
 
         messages = [{"role": "system", "content": system}]
