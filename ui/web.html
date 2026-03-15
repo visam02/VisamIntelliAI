@@ -132,9 +132,16 @@ html, body {
   display: flex;
   flex-direction: column;
   padding: 10px 12px;
-  gap: 10px;
+  gap: 12px;
   overflow: hidden;
   min-height: 0;
+}
+
+@media (min-width: 768px) {
+  .content { flex-direction: row; gap: 16px; }
+  .transcript-wrap { flex: 1; min-width: 0; }
+  .suggestion-wrap { flex: 1.5; min-width: 0; }
+  .transcript-box { max-height: none; flex: 1; }
 }
 
 .section-label {
@@ -598,7 +605,7 @@ html, body {
       3. Set to <strong>Enabled</strong> and Relaunch.
     </div>
 
-    <div>
+    <div class="transcript-wrap">
       <div class="section-label">TRANSCRIPT</div>
       <div class="transcript-box" id="transcriptBox">
         <div class="transcript-text" id="transcriptText"></div>
@@ -703,10 +710,7 @@ socket.on("suggestion_start", () => {
     </div>
     <div class="entry-content"></div>
   `;
-  container.appendChild(entry);
-  
-  const box = document.getElementById("suggestionBox");
-  box.scrollTop = box.scrollHeight;
+  container.prepend(entry);
 });
 
 socket.on("suggestion_chunk", data => {
@@ -714,11 +718,8 @@ socket.on("suggestion_chunk", data => {
   const entries = container.getElementsByClassName("entry-content");
   if (entries.length === 0) return;
   
-  const target = entries[entries.length - 1];
+  const target = entries[0]; // Latest prepended entry is always index 0
   target.textContent += data.chunk;
-  
-  const box = document.getElementById("suggestionBox");
-  box.scrollTop = box.scrollHeight;
 });
 
 socket.on("clear_suggestion", () => {
