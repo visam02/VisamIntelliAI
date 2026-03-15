@@ -209,6 +209,27 @@ html, body {
   font-size: 12px;
 }
 
+.suggestion-entry {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(74, 222, 128, 0.1);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+  animation: slideIn 0.3s ease-out;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.suggestion-entry:last-child { margin-bottom: 0; }
+.suggestion-entry .entry-meta {
+  font-size: 10px;
+  color: var(--text-dark);
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -592,7 +613,7 @@ html, body {
           <div>Tap the mic to start listening</div>
           <div style="font-size:11px;color:var(--text-dark)">AI will answer interview questions in real-time</div>
         </div>
-        <div class="suggestion-text" id="suggestionText" style="display:none"></div>
+        <div class="suggestion-text" id="suggestionText"></div>
       </div>
     </div>
   </div>
@@ -668,12 +689,34 @@ socket.on("transcript", data => {
   box.scrollTop = box.scrollHeight;
 });
 
-socket.on("suggestion_chunk", data => {
-  const el = document.getElementById("suggestionText");
+socket.on("suggestion_start", () => {
+  const container = document.getElementById("suggestionText");
   const empty = document.getElementById("emptyState");
-  el.style.display = "block";
   empty.style.display = "none";
-  el.textContent += data.chunk;
+  
+  const entry = document.createElement("div");
+  entry.className = "suggestion-entry";
+  entry.innerHTML = `
+    <div class="entry-meta">
+      <span>✨ AI ADVICE</span>
+      <span>${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+    </div>
+    <div class="entry-content"></div>
+  `;
+  container.appendChild(entry);
+  
+  const box = document.getElementById("suggestionBox");
+  box.scrollTop = box.scrollHeight;
+});
+
+socket.on("suggestion_chunk", data => {
+  const container = document.getElementById("suggestionText");
+  const entries = container.getElementsByClassName("entry-content");
+  if (entries.length === 0) return;
+  
+  const target = entries[entries.length - 1];
+  target.textContent += data.chunk;
+  
   const box = document.getElementById("suggestionBox");
   box.scrollTop = box.scrollHeight;
 });
@@ -796,7 +839,6 @@ function saveSettings() {
 
 // ── Trigger Help ───────────────────────────
 function triggerHelp() {
-  document.getElementById("suggestionText").textContent = "";
   socket.emit("trigger_help");
 }
 

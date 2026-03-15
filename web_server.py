@@ -238,6 +238,7 @@ def handle_audio(data):
             session["is_thinking"] = True
             emit("status", {"text": "Generating...", "state": "loading"})
             emit("streaming", {"active": True})
+            emit("suggestion_start", {})
 
             combined = "\n".join(session["transcript"])
             context = session.get("context", "")
@@ -264,7 +265,7 @@ def handle_trigger():
     session["is_thinking"] = True
     session["last_llm_time"] = time.time()
     emit("status", {"text": "Generating...", "state": "loading"})
-    emit("clear_suggestion", {})
+    emit("suggestion_start", {})
     emit("streaming", {"active": True})
 
     combined = "\n".join(session.get("transcript", []))
