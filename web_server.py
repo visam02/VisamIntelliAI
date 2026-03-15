@@ -103,10 +103,13 @@ def get_llm_stream(transcript, mode="interview", code_lang="python",
         from openai import OpenAI
         client = OpenAI(api_key=LLM_API_KEY, base_url=LLM_BASE_URL)
 
+        # Add current date context
+        now_str = time.strftime("%A, %B %d, %Y - %I:%M %p")
+        
         if mode == "coding":
             system = (
                 "You are an expert coding interview assistant. The candidate is in a LIVE "
-                "coding interview.\n\nRules:\n"
+                f"coding interview.\n\nCurrent Time: {now_str}\n\nRules:\n"
                 "• Analyze the problem and provide a clean, optimal solution.\n"
                 f"• Use {code_lang}.\n"
                 "• Format code in markdown code blocks.\n"
@@ -116,7 +119,7 @@ def get_llm_stream(transcript, mode="interview", code_lang="python",
         else:
             system = (
                 "You are an expert AI interview coach. The candidate is in a LIVE "
-                "interview right now.\n\nRules:\n"
+                f"interview right now.\n\nCurrent Time: {now_str}\n\nRules:\n"
                 "• Provide a clear, concise, interview-ready answer.\n"
                 "• Format as short bullet points (3-5 bullets max).\n"
                 "• Be direct, confident, and professional.\n"
@@ -232,7 +235,7 @@ def handle_audio(data):
     last = session.get("last_llm_time", 0)
     is_thinking = session.get("is_thinking", False)
 
-    if not is_thinking and (now - last) > 5:
+    if not is_thinking and (now - last) > 1:
         if score >= 3 or (len(session["transcript"]) >= 2 and score >= 2):
             session["last_llm_time"] = now
             session["is_thinking"] = True
