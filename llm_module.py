@@ -35,6 +35,26 @@ class LLMModule:
         "• If the problem is ambiguous, state your assumption in one line."
     )
 
+    MEETING_PROMPT = (
+        "You are an expert AI meeting coach. The user is in a LIVE internal meeting "
+        "right now. You can hear the ongoing discussion via transcript.\n\n"
+        "Your job is to help the user participate effectively. Analyze the discussion "
+        "and provide ACTIONABLE suggestions the user can say RIGHT NOW.\n\n"
+        "Provide suggestions in these categories (use the emoji labels):\n"
+        "\U0001f4ac ANSWER — If someone asked a question, provide a clear answer the user can give\n"
+        "\u2753 QUESTION — Suggest a smart question the user could raise based on the discussion\n"
+        "\U0001f4dd FEEDBACK — Suggest input/feedback the user could contribute to the discussion\n"
+        "\U0001f4a1 IDEA — Suggest an innovative thought or approach the user could share\n"
+        "\U0001f527 CORRECTION — If someone said something incorrect or is going in the wrong direction, suggest how the user can politely correct them\n\n"
+        "Rules:\n"
+        "\u2022 Pick the 2-3 MOST relevant categories based on what's being discussed.\n"
+        "\u2022 Each suggestion should be 1-3 sentences \u2014 ready to speak out loud.\n"
+        "\u2022 Be specific to the actual topic being discussed, not generic.\n"
+        "\u2022 Make the user sound smart, confident, and well-prepared.\n"
+        "\u2022 If the topic is technical, show deep expertise.\n"
+        "\u2022 Start immediately with the suggestions. No preamble."
+    )
+
     def __init__(self, api_key=None, base_url=None):
         self.api_key = api_key or os.environ.get("LLM_API_KEY") or os.environ.get("OPENAI_API_KEY")
         self.base_url = base_url or os.environ.get("LLM_BASE_URL")
@@ -124,7 +144,13 @@ class LLMModule:
     # -- internals ------------------------------------------------------------
 
     def _build_messages(self, transcript, mode="interview", code_lang="python"):
-        prompt = self.CODING_PROMPT if mode == "coding" else self.SYSTEM_PROMPT
+        if mode == "coding":
+            prompt = self.CODING_PROMPT
+        elif mode == "meeting":
+            prompt = self.MEETING_PROMPT
+        else:
+            prompt = self.SYSTEM_PROMPT
+
         if mode == "coding":
             prompt += f"\n\nPreferred language: {code_lang}"
         messages = [{"role": "system", "content": prompt}]
@@ -142,6 +168,9 @@ class LLMModule:
         if mode == "coding":
             user_parts.append(f"Problem / Screen Content:\n{transcript}")
             user_parts.append("Provide the solution:")
+        elif mode == "meeting":
+            user_parts.append(f"Meeting Discussion:\n{transcript}")
+            user_parts.append("Continue the meeting discussion. React to the latest speaker:")
         else:
             user_parts.append(f"Recent Interview Transcript:\n{transcript}")
             user_parts.append("Provide the best answer:")

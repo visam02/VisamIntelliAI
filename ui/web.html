@@ -24,6 +24,10 @@
   --text-dark: #64748b;
   --ai-green: #4ade80;
   --border: rgba(148, 163, 184, 0.12);
+  --speaker-alex: #f472b6;
+  --speaker-priya: #a78bfa;
+  --speaker-jordan: #fb923c;
+  --speaker-you: #38bdf8;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 html, body {
@@ -246,6 +250,186 @@ html, body {
   color: var(--text-dark);
   font-size: 13px;
   gap: 8px;
+}
+
+/* ── Meeting Mode ──────────────────────── */
+.meeting-panel {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  gap: 10px;
+}
+.meeting-panel.active { display: flex; }
+
+.meeting-chat {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.meeting-chat::-webkit-scrollbar { display: none; }
+
+.meeting-msg {
+  display: flex;
+  gap: 10px;
+  animation: msgSlide 0.35s ease-out;
+}
+@keyframes msgSlide {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.meeting-msg.you { flex-direction: row-reverse; }
+
+.meeting-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 0;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.meeting-avatar.alex { background: linear-gradient(135deg, #ec4899, #f472b6); }
+.meeting-avatar.priya { background: linear-gradient(135deg, #8b5cf6, #a78bfa); }
+.meeting-avatar.jordan { background: linear-gradient(135deg, #f97316, #fb923c); }
+.meeting-avatar.you { background: linear-gradient(135deg, #0ea5e9, #38bdf8); }
+
+.meeting-bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: break-word;
+  white-space: pre-wrap;
+  position: relative;
+}
+.meeting-bubble.alex {
+  background: rgba(244, 114, 182, 0.12);
+  border: 1px solid rgba(244, 114, 182, 0.2);
+  color: var(--text);
+}
+.meeting-bubble.priya {
+  background: rgba(167, 139, 250, 0.12);
+  border: 1px solid rgba(167, 139, 250, 0.2);
+  color: var(--text);
+}
+.meeting-bubble.jordan {
+  background: rgba(251, 146, 60, 0.12);
+  border: 1px solid rgba(251, 146, 60, 0.2);
+  color: var(--text);
+}
+.meeting-bubble.you {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  color: var(--text);
+}
+
+.meeting-speaker {
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  letter-spacing: 0.3px;
+}
+.meeting-speaker.alex { color: var(--speaker-alex); }
+.meeting-speaker.priya { color: var(--speaker-priya); }
+.meeting-speaker.jordan { color: var(--speaker-jordan); }
+.meeting-speaker.you { color: var(--speaker-you); }
+
+/* Meeting Scores */
+.meeting-scores {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 0 2px;
+}
+.score-card {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 6px;
+  text-align: center;
+  transition: all 0.4s;
+}
+.score-card .score-value {
+  font-size: 20px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), var(--ai-green));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: all 0.4s;
+}
+.score-card .score-label {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-dark);
+  margin-top: 2px;
+}
+.score-card.highlight {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+/* Meeting empty state */
+.meeting-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-dark);
+  font-size: 13px;
+  gap: 8px;
+  text-align: center;
+  padding: 20px;
+}
+.meeting-empty .icon { font-size: 42px; opacity: 0.6; }
+.meeting-empty .hint {
+  font-size: 11px;
+  color: var(--text-dark);
+  max-width: 240px;
+  line-height: 1.5;
+}
+
+/* Thinking indicator */
+.meeting-thinking {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--text-dim);
+  animation: msgSlide 0.35s ease-out;
+}
+.thinking-dots {
+  display: flex;
+  gap: 4px;
+}
+.thinking-dots span {
+  width: 6px;
+  height: 6px;
+  background: var(--text-dim);
+  border-radius: 50%;
+  animation: dotPulse 1.4s ease-in-out infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dotPulse {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
 }
 .empty-state .icon { font-size: 36px; opacity: 0.5; }
 
@@ -593,6 +777,7 @@ html, body {
   <div class="mode-bar">
     <button class="mode-btn active" id="modeInterview" onclick="setMode('interview')">🎤 Interview</button>
     <button class="mode-btn" id="modeCoding" onclick="setMode('coding')">💻 Coding</button>
+    <button class="mode-btn" id="modeMeeting" onclick="setMode('meeting')">🤝 Meeting</button>
   </div>
 
   <!-- Content -->
@@ -612,7 +797,7 @@ html, body {
       </div>
     </div>
 
-    <div class="suggestion-wrap">
+    <div class="suggestion-wrap" id="suggestionWrap">
       <div class="section-label">AI SUGGESTION</div>
       <div class="suggestion-box" id="suggestionBox">
         <div class="empty-state" id="emptyState">
@@ -623,6 +808,8 @@ html, body {
         <div class="suggestion-text" id="suggestionText"></div>
       </div>
     </div>
+
+
   </div>
 
   <!-- Bottom Action Bar -->
@@ -654,6 +841,10 @@ html, body {
       <option value="go">Go</option>
       <option value="typescript">TypeScript</option>
     </select>
+  </div>
+  <div class="settings-group">
+    <div class="settings-label">Meeting Topic / Agenda</div>
+    <textarea class="settings-textarea" id="meetingTopicInput" placeholder="e.g. Q3 System Architecture review — discuss migration to microservices, API gateway strategy, and observability improvements..."></textarea>
   </div>
   <button class="save-btn" onclick="saveSettings()">SAVE</button>
 </div>
@@ -818,9 +1009,22 @@ function stopMic() {
 }
 
 // ── Mode Toggle ────────────────────────────
+let currentMode = "interview";
+
 function setMode(mode) {
+  currentMode = mode;
   document.getElementById("modeInterview").classList.toggle("active", mode === "interview");
   document.getElementById("modeCoding").classList.toggle("active", mode === "coding");
+  document.getElementById("modeMeeting").classList.toggle("active", mode === "meeting");
+
+  // Update suggestion label based on mode
+  const suggLabel = document.querySelector("#suggestionWrap .section-label");
+  if (mode === "meeting") {
+    suggLabel.textContent = "🤝 AI MEETING COACH";
+  } else {
+    suggLabel.textContent = "AI SUGGESTION";
+  }
+
   socket.emit("set_mode", { mode });
 }
 
@@ -834,6 +1038,7 @@ function saveSettings() {
     resume: document.getElementById("resumeInput").value,
     jd: document.getElementById("jdInput").value,
     code_lang: document.getElementById("codeLangSelect").value,
+    meeting_topic: document.getElementById("meetingTopicInput").value,
   });
   toggleSettings();
 }
@@ -887,6 +1092,8 @@ socket.on("mic_activity", (active) => {
     if (active) startTimer();
     else stopTimer();
 });
+
+
 </script>
 </body>
 </html>

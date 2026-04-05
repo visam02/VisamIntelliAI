@@ -123,7 +123,8 @@ class ParakeetApp:
                 import keyboard
                 keyboard.add_hotkey("ctrl+enter", self._on_manual_trigger)
                 keyboard.add_hotkey("ctrl+shift+c", self._toggle_coding_mode)
-                print("[main] hotkeys registered: Ctrl+Enter, Ctrl+Shift+C", flush=True)
+                keyboard.add_hotkey("ctrl+shift+m", self._toggle_meeting_mode)
+                print("[main] hotkeys registered: Ctrl+Enter, Ctrl+Shift+C, Ctrl+Shift+M", flush=True)
             except Exception as e:
                 print(f"[main] hotkey skipped: {e}", flush=True)
 
@@ -157,8 +158,13 @@ class ParakeetApp:
 
         self.ui.append_transcript(text)
 
-        # Auto-trigger check (only in interview mode)
-        if self.ui.mode == "interview":
+        # Auto-trigger logic based on mode
+        if self.ui.mode == "meeting":
+            # Meeting mode: just capture transcript, no auto-trigger
+            # User presses Ctrl+Enter for on-demand coaching
+            pass
+        elif self.ui.mode == "interview":
+            # Auto-trigger check (only in interview mode)
             score = question_score(text)
             now = time.time()
             cooldown_ok = (now - self._last_llm_time) > self.LLM_COOLDOWN_SEC
@@ -181,6 +187,11 @@ class ParakeetApp:
 
     def _toggle_coding_mode(self):
         new_mode = "interview" if self.ui.mode == "coding" else "coding"
+        self.ui._mode = new_mode
+        print(f"[main] mode toggled to: {new_mode}", flush=True)
+
+    def _toggle_meeting_mode(self):
+        new_mode = "meeting" if self.ui.mode != "meeting" else "interview"
         self.ui._mode = new_mode
         print(f"[main] mode toggled to: {new_mode}", flush=True)
 

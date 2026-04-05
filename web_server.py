@@ -128,6 +128,28 @@ def get_llm_stream(transcript, mode="interview", code_lang="python",
                 "• Briefly explain approach and complexity.\n"
                 "• Be concise. Jump straight to the solution."
             )
+        elif mode == "meeting":
+            system = (
+                "You are an expert AI meeting coach. The user is in a LIVE internal meeting "
+                "right now. You can hear the ongoing discussion via transcript.\n\n"
+                f"Current Time: {now_str}"
+                f"{modern_knowledge}\n\n"
+                "Your job is to help the user participate effectively. Analyze the discussion "
+                "and provide ACTIONABLE suggestions the user can say RIGHT NOW.\n\n"
+                "Provide suggestions in these categories (use the emoji labels):\n"
+                "💬 ANSWER — If someone asked a question, provide a clear answer the user can give\n"
+                "❓ QUESTION — Suggest a smart question the user could raise based on the discussion\n"
+                "📝 FEEDBACK — Suggest input/feedback the user could contribute to the discussion\n"
+                "💡 IDEA — Suggest an innovative thought or approach the user could share\n"
+                "🔧 CORRECTION — If someone said something incorrect or is going in the wrong direction, suggest how the user can politely correct them\n\n"
+                "Rules:\n"
+                "• Pick the 2-3 MOST relevant categories based on what's being discussed.\n"
+                "• Each suggestion should be 1-3 sentences — ready to speak out loud.\n"
+                "• Be specific to the actual topic being discussed, not generic.\n"
+                "• Make the user sound smart, confident, and well-prepared.\n"
+                "• If the topic is technical, show deep expertise.\n"
+                "• Start immediately with the suggestions. No preamble."
+            )
         else:
             system = (
                 "You are an expert AI interview coach. The candidate is in a LIVE "
@@ -151,13 +173,18 @@ def get_llm_stream(transcript, mode="interview", code_lang="python",
         if context:
             user_parts.append(f"Context:\n{context}")
         user_parts.append(f"Transcript:\n{transcript}")
-        user_parts.append("Provide the best answer:")
+        if mode == "meeting":
+            user_parts.append("Based on this meeting discussion, what should I say right now? Provide categorized suggestions:")
+        else:
+            user_parts.append("Provide the best answer:")
         messages.append({"role": "user", "content": "\n\n".join(user_parts)})
+
+        max_tok = 500 if mode == "meeting" else 400
 
         stream = client.chat.completions.create(
             model=LLM_MODEL,
             messages=messages,
-            max_tokens=400,
+            max_tokens=max_tok,
             temperature=0.7,
             stream=True,
         )
@@ -174,6 +201,42 @@ def get_llm_stream(transcript, mode="interview", code_lang="python",
     except Exception as e:
         print(f"[LLM] error: {e}", flush=True)
         yield f"\nError: {e}"
+
+
+def parse_meeting_response(text):
+    """Parse structured meeting response into speaker messages and scores."""
+    import re
+    messages = []
+    scores = None
+
+    for line in text.strip().split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+
+        # Parse scores line
+        score_match = re.match(r'\[SCORES?\]:\s*(.*)', line, re.IGNORECASE)
+        if score_match:
+            score_text = score_match.group(1)
+            scores = {}
+            for key in ["communication", "innovation", "leadership", "relevance"]:
+                m = re.search(rf'{key}\s*=\s*(\d+)', score_text, re.IGNORECASE)
+                if m:
+                    scores[key] = min(10, max(1, int(m.group(1))))
+            continue
+
+        # Parse speaker lines
+        speaker_match = re.match(r'\[(ALEX|PRIYA|JORDAN)\]:\s*(.*)', line, re.IGNORECASE)
+        if speaker_match:
+            speaker = speaker_match.group(1).lower()
+            msg = speaker_match.group(2).strip()
+            if msg:
+                messages.append({"speaker": speaker, "text": msg})
+        elif messages:
+            # Continuation of previous message
+            messages[-1]["text"] += "\n" + line
+
+    return messages, scores
 
 # ---------------------------------------------------------------------------
 # Question Detection
@@ -213,6 +276,9 @@ def handle_connect():
         "context": "",
         "mode": "interview",
         "code_lang": "python",
+        "meeting_topic": "",
+        "meeting_history": deque(maxlen=10),
+        "meeting_started": False,
         "last_llm_time": 0,
         "is_thinking": False,
     }
@@ -242,9 +308,16 @@ def handle_audio(data):
     session["transcript"].append(text)
     emit("transcript", {"text": text})
 
-    # Auto-trigger check
-    score = question_score(text)
+    mode = session.get("mode", "interview")
     now = time.time()
+
+    # Meeting mode: just capture transcript, NO auto-trigger
+    # User clicks "GET AI HELP" button for on-demand coaching
+    if mode == "meeting":
+        return
+
+    # Auto-trigger check (interview/coding modes)
+    score = question_score(text)
     last = session.get("last_llm_time", 0)
     is_thinking = session.get("is_thinking", False)
 
@@ -296,6 +369,12 @@ def handle_trigger():
     code_lang = session.get("code_lang", "python")
     memory = list(session.get("memory", []))
 
+    # Add meeting topic context if in meeting mode
+    if mode == "meeting":
+        topic = session.get("meeting_topic", "")
+        if topic:
+            combined = f"Meeting Topic: {topic}\n\n{combined}"
+
     for chunk in get_llm_stream(combined, mode, code_lang, context, memory):
         emit("suggestion_chunk", {"chunk": chunk})
 
@@ -316,7 +395,8 @@ def handle_settings(data):
     session = sessions.get(sid, sessions.get('default', {}))
     session["context"] = (data.get("resume", "") + "\n" + data.get("jd", "")).strip()
     session["code_lang"] = data.get("code_lang", "python")
-    print(f"[WS] settings updated", flush=True)
+    session["meeting_topic"] = data.get("meeting_topic", "")
+    print(f"[WS] settings updated (topic={session['meeting_topic'][:50]})", flush=True)
 
 # ---------------------------------------------------------------------------
 # Stealth Mode - pywebview wrapper with screen-capture invisibility
